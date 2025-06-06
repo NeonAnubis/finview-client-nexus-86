@@ -1,9 +1,11 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Building2, FileText, MessageSquare, TrendingUp, AlertCircle, Clock, CheckCircle2 } from 'lucide-react';
+import { Building2, FileText, MessageSquare, TrendingUp, AlertCircle, Clock, CheckCircle2, Bell, User, Download } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import MindMapView from '@/components/MindMapView';
 import ProjectDetail from '@/components/ProjectDetail';
 import DocumentManager from '@/components/DocumentManager';
@@ -18,6 +20,7 @@ const Index = () => {
   const [authMode, setAuthMode] = useState('signin'); // 'signin' or 'signup'
   const [selectedProject, setSelectedProject] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
+  const { toast } = useToast();
 
   // Sample client data
   const clientData = {
@@ -117,17 +120,259 @@ const Index = () => {
     }
   }
 
-  // Show specific pages based on activeTab
-  if (activeTab === 'reports') {
-    return <ReportsPage onBack={() => setActiveTab('dashboard')} />;
-  }
+  const renderMainContent = () => {
+    // Reports page content
+    if (activeTab === 'reports') {
+      return (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-slate-900">Financial Reports</h1>
+              <p className="text-slate-600">Comprehensive insights into your financial portfolio</p>
+            </div>
+          </div>
+          <ReportsPage onBack={() => setActiveTab('dashboard')} />
+        </div>
+      );
+    }
 
-  if (activeTab === 'contact') {
-    return <ContactAdvisorPage onBack={() => setActiveTab('dashboard')} />;
-  }
+    // Contact advisor page content
+    if (activeTab === 'contact') {
+      return (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-slate-900">Contact Your Advisor</h1>
+              <p className="text-slate-600">Get expert guidance on your financial matters</p>
+            </div>
+          </div>
+          <ContactAdvisorPage onBack={() => setActiveTab('dashboard')} />
+        </div>
+      );
+    }
+
+    // Main tabs content
+    return (
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:grid-cols-none lg:inline-flex">
+          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+          <TabsTrigger value="visual">Visual Relationship View</TabsTrigger>
+          <TabsTrigger value="projects">Project Pages</TabsTrigger>
+          <TabsTrigger value="documents">Secure Documents</TabsTrigger>
+          <TabsTrigger value="assistant">AI Assistant</TabsTrigger>
+        </TabsList>
+
+        {/* Dashboard Content */}
+        <TabsContent value="dashboard" className="space-y-6">
+          {/* Quick Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-blue-100 text-sm font-medium">Total Assets</p>
+                    <p className="text-2xl font-bold">{clientData.totalAssets}</p>
+                  </div>
+                  <TrendingUp className="w-8 h-8 text-blue-200" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-slate-600 text-sm font-medium">Active Projects</p>
+                    <p className="text-2xl font-bold text-slate-900">{clientData.activeProjects}</p>
+                  </div>
+                  <Building2 className="w-8 h-8 text-slate-400" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-slate-600 text-sm font-medium">Upcoming Deadlines</p>
+                    <p className="text-2xl font-bold text-slate-900">{clientData.upcomingDeadlines}</p>
+                  </div>
+                  <Clock className="w-8 h-8 text-orange-400" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-slate-600 text-sm font-medium">Recent Activity</p>
+                    <p className="text-sm font-semibold text-slate-900 mt-1">{clientData.recentActivity}</p>
+                  </div>
+                  <CheckCircle2 className="w-8 h-8 text-green-400" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Building2 className="w-5 h-5" />
+                  Active Projects
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {projects.filter(p => p.status !== 'completed').map((project) => (
+                  <div 
+                    key={project.id}
+                    className="p-4 border border-slate-200 rounded-lg hover:border-blue-300 transition-colors cursor-pointer"
+                    onClick={() => {
+                      setSelectedProject(project);
+                      setActiveTab('project-detail');
+                    }}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="font-semibold text-slate-900">{project.name}</h3>
+                      <Badge className={`${getStatusColor(project.status)} flex items-center gap-1`}>
+                        {getStatusIcon(project.status)}
+                        {project.status.replace('-', ' ')}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between text-sm text-slate-600">
+                      <span>{project.type}</span>
+                      <span>{project.completion}% complete</span>
+                    </div>
+                    <div className="w-full bg-slate-200 rounded-full h-2 mt-2">
+                      <div 
+                        className={`h-2 rounded-full transition-all duration-300 ${
+                          project.status === 'on-track' ? 'bg-blue-500' : 
+                          project.status === 'attention' ? 'bg-yellow-500' : 'bg-green-500'
+                        }`}
+                        style={{ width: `${project.completion}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="w-5 h-5" />
+                  Upcoming Deadlines
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {upcomingDeadlines.map((deadline, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                    <div>
+                      <p className="font-medium text-slate-900">{deadline.task}</p>
+                      <p className="text-sm text-slate-600">{deadline.date}</p>
+                    </div>
+                    <Badge variant={deadline.priority === 'high' ? 'destructive' : 'secondary'}>
+                      {deadline.priority}
+                    </Badge>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="visual">
+          <MindMapView projects={projects} onProjectSelect={(project) => {
+            setSelectedProject(project);
+            setActiveTab('project-detail');
+          }} />
+        </TabsContent>
+
+        <TabsContent value="projects">
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Building2 className="w-6 h-6" />
+                  All Projects
+                </CardTitle>
+                <p className="text-slate-600">Manage and track all your active and completed projects</p>
+              </CardHeader>
+            </Card>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+              {projects.map((project) => (
+                <Card 
+                  key={project.id}
+                  className="cursor-pointer hover:shadow-lg transition-shadow"
+                  onClick={() => {
+                    setSelectedProject(project);
+                    setActiveTab('project-detail');
+                  }}
+                >
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg">{project.name}</CardTitle>
+                      <Badge className={getStatusColor(project.status)}>
+                        {getStatusIcon(project.status)}
+                        {project.status.replace('-', ' ')}
+                      </Badge>
+                    </div>
+                    <p className="text-slate-600">{project.entity} • {project.type}</p>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div>
+                        <div className="flex justify-between text-sm mb-1">
+                          <span>Progress</span>
+                          <span>{project.completion}%</span>
+                        </div>
+                        <div className="w-full bg-slate-200 rounded-full h-2">
+                          <div 
+                            className={`h-2 rounded-full ${
+                              project.status === 'completed' ? 'bg-green-500' :
+                              project.status === 'on-track' ? 'bg-blue-500' : 'bg-yellow-500'
+                            }`}
+                            style={{ width: `${project.completion}%` }}
+                          />
+                        </div>
+                      </div>
+                      <div className="text-sm text-slate-600">
+                        <p><strong>Deadline:</strong> {new Date(project.deadline).toLocaleDateString()}</p>
+                        <p><strong>Parties:</strong> {project.parties.length} involved</p>
+                      </div>
+                      <p className="text-sm text-slate-700">{project.lastUpdate}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="documents">
+          <DocumentManager projects={projects} />
+        </TabsContent>
+
+        <TabsContent value="assistant">
+          <AIAssistant clientData={clientData} projects={projects} />
+        </TabsContent>
+
+        <TabsContent value="project-detail">
+          {selectedProject && (
+            <ProjectDetail 
+              project={selectedProject} 
+              onBack={() => setActiveTab('dashboard')} 
+            />
+          )}
+        </TabsContent>
+      </Tabs>
+    );
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex flex-col">
       {/* Header */}
       <header className="bg-white border-b border-slate-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 py-4">
@@ -157,227 +402,43 @@ const Index = () => {
                 <MessageSquare className="w-4 h-4 mr-2" />
                 Contact Advisor
               </Button>
+              <Button variant="ghost" size="sm" className="relative">
+                <Bell className="w-5 h-5" />
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">3</span>
+              </Button>
+              <Button variant="ghost" size="sm">
+                <User className="w-5 h-5" />
+              </Button>
             </div>
           </div>
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-6 py-6">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:grid-cols-none lg:inline-flex">
-            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-            <TabsTrigger value="visual">Visual Relationship View</TabsTrigger>
-            <TabsTrigger value="projects">Project Pages</TabsTrigger>
-            <TabsTrigger value="documents">Secure Documents</TabsTrigger>
-            <TabsTrigger value="assistant">AI Assistant</TabsTrigger>
-          </TabsList>
+      {/* Main Content */}
+      <main className="flex-1 max-w-7xl mx-auto px-6 py-6 w-full">
+        {renderMainContent()}
+      </main>
 
-          <TabsContent value="dashboard" className="space-y-6">
-            {/* Quick Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-blue-100 text-sm font-medium">Total Assets</p>
-                      <p className="text-2xl font-bold">{clientData.totalAssets}</p>
-                    </div>
-                    <TrendingUp className="w-8 h-8 text-blue-200" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-slate-600 text-sm font-medium">Active Projects</p>
-                      <p className="text-2xl font-bold text-slate-900">{clientData.activeProjects}</p>
-                    </div>
-                    <Building2 className="w-8 h-8 text-slate-400" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-slate-600 text-sm font-medium">Upcoming Deadlines</p>
-                      <p className="text-2xl font-bold text-slate-900">{clientData.upcomingDeadlines}</p>
-                    </div>
-                    <Clock className="w-8 h-8 text-orange-400" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-slate-600 text-sm font-medium">Recent Activity</p>
-                      <p className="text-sm font-semibold text-slate-900 mt-1">{clientData.recentActivity}</p>
-                    </div>
-                    <CheckCircle2 className="w-8 h-8 text-green-400" />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Building2 className="w-5 h-5" />
-                    Active Projects
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {projects.filter(p => p.status !== 'completed').map((project) => (
-                    <div 
-                      key={project.id}
-                      className="p-4 border border-slate-200 rounded-lg hover:border-blue-300 transition-colors cursor-pointer"
-                      onClick={() => {
-                        setSelectedProject(project);
-                        setActiveTab('project-detail');
-                      }}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className="font-semibold text-slate-900">{project.name}</h3>
-                        <Badge className={`${getStatusColor(project.status)} flex items-center gap-1`}>
-                          {getStatusIcon(project.status)}
-                          {project.status.replace('-', ' ')}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center justify-between text-sm text-slate-600">
-                        <span>{project.type}</span>
-                        <span>{project.completion}% complete</span>
-                      </div>
-                      <div className="w-full bg-slate-200 rounded-full h-2 mt-2">
-                        <div 
-                          className={`h-2 rounded-full transition-all duration-300 ${
-                            project.status === 'on-track' ? 'bg-blue-500' : 
-                            project.status === 'attention' ? 'bg-yellow-500' : 'bg-green-500'
-                          }`}
-                          style={{ width: `${project.completion}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Clock className="w-5 h-5" />
-                    Upcoming Deadlines
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {upcomingDeadlines.map((deadline, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                      <div>
-                        <p className="font-medium text-slate-900">{deadline.task}</p>
-                        <p className="text-sm text-slate-600">{deadline.date}</p>
-                      </div>
-                      <Badge variant={deadline.priority === 'high' ? 'destructive' : 'secondary'}>
-                        {deadline.priority}
-                      </Badge>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="visual">
-            <MindMapView projects={projects} onProjectSelect={(project) => {
-              setSelectedProject(project);
-              setActiveTab('project-detail');
-            }} />
-          </TabsContent>
-
-          <TabsContent value="projects">
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Building2 className="w-6 h-6" />
-                    All Projects
-                  </CardTitle>
-                  <p className="text-slate-600">Manage and track all your active and completed projects</p>
-                </CardHeader>
-              </Card>
-              
-              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                {projects.map((project) => (
-                  <Card 
-                    key={project.id}
-                    className="cursor-pointer hover:shadow-lg transition-shadow"
-                    onClick={() => {
-                      setSelectedProject(project);
-                      setActiveTab('project-detail');
-                    }}
-                  >
-                    <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-lg">{project.name}</CardTitle>
-                        <Badge className={getStatusColor(project.status)}>
-                          {getStatusIcon(project.status)}
-                          {project.status.replace('-', ' ')}
-                        </Badge>
-                      </div>
-                      <p className="text-slate-600">{project.entity} • {project.type}</p>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        <div>
-                          <div className="flex justify-between text-sm mb-1">
-                            <span>Progress</span>
-                            <span>{project.completion}%</span>
-                          </div>
-                          <div className="w-full bg-slate-200 rounded-full h-2">
-                            <div 
-                              className={`h-2 rounded-full ${
-                                project.status === 'completed' ? 'bg-green-500' :
-                                project.status === 'on-track' ? 'bg-blue-500' : 'bg-yellow-500'
-                              }`}
-                              style={{ width: `${project.completion}%` }}
-                            />
-                          </div>
-                        </div>
-                        <div className="text-sm text-slate-600">
-                          <p><strong>Deadline:</strong> {new Date(project.deadline).toLocaleDateString()}</p>
-                          <p><strong>Parties:</strong> {project.parties.length} involved</p>
-                        </div>
-                        <p className="text-sm text-slate-700">{project.lastUpdate}</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+      {/* Footer */}
+      <footer className="bg-white border-t border-slate-200">
+        <div className="max-w-7xl mx-auto px-6 py-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-6">
+              <div className="text-sm text-slate-600">
+                © 2024 Financial Portal. All rights reserved.
+              </div>
+              <div className="flex space-x-4 text-sm text-slate-600">
+                <button className="hover:text-slate-900">Privacy Policy</button>
+                <button className="hover:text-slate-900">Terms of Service</button>
+                <button className="hover:text-slate-900">Support</button>
               </div>
             </div>
-          </TabsContent>
-
-          <TabsContent value="documents">
-            <DocumentManager projects={projects} />
-          </TabsContent>
-
-          <TabsContent value="assistant">
-            <AIAssistant clientData={clientData} projects={projects} />
-          </TabsContent>
-
-          <TabsContent value="project-detail">
-            {selectedProject && (
-              <ProjectDetail 
-                project={selectedProject} 
-                onBack={() => setActiveTab('dashboard')} 
-              />
-            )}
-          </TabsContent>
-        </Tabs>
-      </div>
+            <div className="text-sm text-slate-600">
+              Secure • Encrypted • Compliant
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };

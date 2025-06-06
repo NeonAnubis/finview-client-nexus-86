@@ -1,17 +1,17 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FileText, Upload, Search, Filter, Download, Eye, Tag } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 const DocumentManager = ({ projects }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
-
-  const mockDocuments = [
+  const [documents, setDocuments] = useState([
     {
       id: 1,
       name: "2023 Tax Return - Final.pdf",
@@ -20,7 +20,8 @@ const DocumentManager = ({ projects }) => {
       uploadDate: "2024-05-15",
       size: "2.1 MB",
       tags: ["tax", "returns", "2023"],
-      type: "PDF"
+      type: "PDF",
+      url: "data:application/pdf;base64,JVBERi0xLjQKMSAwIG9iago8PAovVGl0bGUgKDIwMjMgVGF4IFJldHVybilcL0Nsb3NlZFsyXQo+PgplbmRvYmoKMiAwIG9iago8PAovUGFyZW50IDAgMCBSCj4+CmVuZG9iagp0cmFpbGVyCjw8Ci9TaXplIDMKPj4KJTM=" // Sample PDF base64
     },
     {
       id: 2,
@@ -30,7 +31,8 @@ const DocumentManager = ({ projects }) => {
       uploadDate: "2024-06-01",
       size: "1.8 MB",
       tags: ["trust", "legal", "amendment"],
-      type: "PDF"
+      type: "PDF",
+      url: "data:application/pdf;base64,JVBERi0xLjQKMSAwIG9iago8PAovVGl0bGUgKFRydXN0IEFncmVlbWVudClcL0Nsb3NlZFsyXQo+PgplbmRvYmoKMiAwIG9iago8PAovUGFyZW50IDAgMCBSCj4+CmVuZG9iagp0cmFpbGVyCjw8Ci9TaXplIDMKPj4KJTM="
     },
     {
       id: 3,
@@ -50,7 +52,8 @@ const DocumentManager = ({ projects }) => {
       uploadDate: "2024-05-20",
       size: "890 KB",
       tags: ["insurance", "commercial", "policy"],
-      type: "PDF"
+      type: "PDF",
+      url: "data:application/pdf;base64,JVBERi0xLjQKMSAwIG9iago8PAovVGl0bGUgKEluc3VyYW5jZSBQb2xpY3kpXC9DbG9zZWRbMl0KPj4KZW5kb2JqCjIgMCBvYmoKPDwKL1BhcmVudCAwIDAgUgo+PgplbmRvYmoKdHJhaWxlcgo8PAovU2l6ZSAzCj4+CiUz"
     },
     {
       id: 5,
@@ -72,7 +75,10 @@ const DocumentManager = ({ projects }) => {
       tags: ["formation", "legal", "entity"],
       type: "Archive"
     }
-  ];
+  ]);
+
+  const fileInputRef = useRef(null);
+  const { toast } = useToast();
 
   const categories = [
     "all",
@@ -84,12 +90,81 @@ const DocumentManager = ({ projects }) => {
     "Contracts"
   ];
 
-  const filteredDocuments = mockDocuments.filter(doc => {
+  const filteredDocuments = documents.filter(doc => {
     const matchesSearch = doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          doc.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesCategory = selectedCategory === 'all' || doc.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
+
+  const handleFileUpload = (event) => {
+    const files = Array.from(event.target.files);
+    files.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const newDocument = {
+          id: documents.length + Math.random(),
+          name: file.name,
+          category: getAutoCategory(file.name),
+          project: projects[0]?.name || "General",
+          uploadDate: new Date().toISOString().split('T')[0],
+          size: formatFileSize(file.size),
+          tags: getAutoTags(file.name),
+          type: getFileType(file.name),
+          url: e.target.result
+        };
+        setDocuments(prev => [...prev, newDocument]);
+        toast({
+          title: "File uploaded successfully!",
+          description: `${file.name} has been added to your documents.`,
+        });
+      };
+      reader.readAsDataURL(file);
+    });
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const getAutoCategory = (filename) => {
+    const name = filename.toLowerCase();
+    if (name.includes('tax') || name.includes('return')) return 'Tax';
+    if (name.includes('legal') || name.includes('contract') || name.includes('agreement')) return 'Legal';
+    if (name.includes('insurance') || name.includes('policy')) return 'Insurance';
+    if (name.includes('valuation') || name.includes('appraisal')) return 'Valuation';
+    return 'Project Updates';
+  };
+
+  const getAutoTags = (filename) => {
+    const name = filename.toLowerCase();
+    const tags = [];
+    if (name.includes('tax')) tags.push('tax');
+    if (name.includes('legal')) tags.push('legal');
+    if (name.includes('contract')) tags.push('contract');
+    if (name.includes('2024')) tags.push('2024');
+    if (name.includes('2023')) tags.push('2023');
+    return tags.length > 0 ? tags : ['document'];
+  };
+
+  const formatFileSize = (bytes) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const getFileType = (filename) => {
+    const extension = filename.split('.').pop().toLowerCase();
+    switch (extension) {
+      case 'pdf': return 'PDF';
+      case 'xlsx': case 'xls': return 'Excel';
+      case 'mp4': case 'mov': case 'avi': return 'Video';
+      case 'zip': case 'rar': return 'Archive';
+      default: return 'Document';
+    }
+  };
 
   const getFileIcon = (type) => {
     switch (type) {
@@ -118,6 +193,38 @@ const DocumentManager = ({ projects }) => {
     }
   };
 
+  const handleDownload = (document) => {
+    if (document.url) {
+      const link = document.createElement('a');
+      link.href = document.url;
+      link.download = document.name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast({
+        title: "Download started",
+        description: `${document.name} is being downloaded.`,
+      });
+    } else {
+      toast({
+        title: "Download not available",
+        description: "This file is not available for download.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleView = (document) => {
+    if (document.url && document.type === 'PDF') {
+      window.open(document.url, '_blank');
+    } else {
+      toast({
+        title: "Preview not available",
+        description: "Preview is only available for PDF files.",
+      });
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -138,10 +245,22 @@ const DocumentManager = ({ projects }) => {
               <CardTitle className="text-lg">Quick Upload</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Button className="w-full" size="lg">
+              <Button 
+                className="w-full" 
+                size="lg"
+                onClick={() => fileInputRef.current?.click()}
+              >
                 <Upload className="w-4 h-4 mr-2" />
                 Upload Documents
               </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept=".pdf,.doc,.docx,.xlsx,.xls,.zip,.mp4,.mov"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
               <p className="text-sm text-slate-600 text-center">
                 Drag & drop files or click to browse
               </p>
@@ -181,15 +300,27 @@ const DocumentManager = ({ projects }) => {
             <CardContent className="space-y-3">
               <div className="flex justify-between">
                 <span className="text-sm text-slate-600">Total Documents:</span>
-                <span className="font-medium">{mockDocuments.length}</span>
+                <span className="font-medium">{documents.length}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-slate-600">Recent Uploads:</span>
-                <span className="font-medium">3 this week</span>
+                <span className="font-medium">
+                  {documents.filter(doc => {
+                    const uploadDate = new Date(doc.uploadDate);
+                    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+                    return uploadDate > weekAgo;
+                  }).length} this week
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-slate-600">Storage Used:</span>
-                <span className="font-medium">58.7 MB</span>
+                <span className="font-medium">
+                  {documents.reduce((total, doc) => {
+                    const size = parseFloat(doc.size.split(' ')[0]);
+                    const unit = doc.size.split(' ')[1];
+                    return total + (unit === 'MB' ? size : size / 1024);
+                  }, 0).toFixed(1)} MB
+                </span>
               </div>
             </CardContent>
           </Card>
@@ -260,10 +391,18 @@ const DocumentManager = ({ projects }) => {
                       </div>
                     </div>
                     <div className="flex items-center gap-2 ml-4">
-                      <Button variant="ghost" size="sm">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => handleView(document)}
+                      >
                         <Eye className="w-4 h-4" />
                       </Button>
-                      <Button variant="ghost" size="sm">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => handleDownload(document)}
+                      >
                         <Download className="w-4 h-4" />
                       </Button>
                     </div>
