@@ -7,11 +7,23 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FileText, Upload, Search, Filter, Download, Eye, Tag } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-const DocumentManager = ({ projects }) => {
+interface Document {
+  id: number;
+  name: string;
+  category: string;
+  project: string;
+  uploadDate: string;
+  size: string;
+  tags: string[];
+  type: string;
+  content?: string;
+}
+
+const DocumentManager = ({ projects }: { projects: any[] }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [isUploading, setIsUploading] = useState(false);
-  const [documents, setDocuments] = useState([
+  const [documents, setDocuments] = useState<Document[]>([
     {
       id: 1,
       name: "2023 Tax Return - Final.pdf",
@@ -77,11 +89,11 @@ const DocumentManager = ({ projects }) => {
     }
   ]);
 
-  const fileInputRef = useRef(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   // Function to create a sample PDF content
-  function createSamplePDF(title, content) {
+  function createSamplePDF(title: string, content: string): string {
     const pdfContent = `%PDF-1.4
 1 0 obj
 <<
@@ -160,19 +172,25 @@ startxref
     return matchesSearch && matchesCategory;
   });
 
-  const handleFileUpload = async (event) => {
-    const files = Array.from(event.target.files);
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files) return;
+    
+    const fileArray = Array.from(files);
     setIsUploading(true);
     
-    for (const file of files) {
+    for (const file of fileArray) {
       try {
         const reader = new FileReader();
-        const fileContent = await new Promise((resolve) => {
-          reader.onload = (e) => resolve(e.target.result);
+        const fileContent = await new Promise<string>((resolve) => {
+          reader.onload = (e) => {
+            const result = e.target?.result;
+            resolve(typeof result === 'string' ? result : '');
+          };
           reader.readAsDataURL(file);
         });
 
-        const newDocument = {
+        const newDocument: Document = {
           id: documents.length + Math.random(),
           name: file.name,
           category: getAutoCategory(file.name),
@@ -207,7 +225,7 @@ startxref
     }
   };
 
-  const getAutoCategory = (filename) => {
+  const getAutoCategory = (filename: string): string => {
     const name = filename.toLowerCase();
     if (name.includes('tax') || name.includes('return')) return 'Tax';
     if (name.includes('legal') || name.includes('contract') || name.includes('agreement')) return 'Legal';
@@ -216,9 +234,9 @@ startxref
     return 'Project Updates';
   };
 
-  const getAutoTags = (filename) => {
+  const getAutoTags = (filename: string): string[] => {
     const name = filename.toLowerCase();
-    const tags = [];
+    const tags: string[] = [];
     if (name.includes('tax')) tags.push('tax');
     if (name.includes('legal')) tags.push('legal');
     if (name.includes('contract')) tags.push('contract');
@@ -227,7 +245,7 @@ startxref
     return tags.length > 0 ? tags : ['document'];
   };
 
-  const formatFileSize = (bytes) => {
+  const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
@@ -235,8 +253,8 @@ startxref
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const getFileType = (filename) => {
-    const extension = filename.split('.').pop().toLowerCase();
+  const getFileType = (filename: string): string => {
+    const extension = filename.split('.').pop()?.toLowerCase();
     switch (extension) {
       case 'pdf': return 'PDF';
       case 'xlsx': case 'xls': return 'Excel';
@@ -246,7 +264,7 @@ startxref
     }
   };
 
-  const getFileIcon = (type) => {
+  const getFileIcon = (type: string) => {
     switch (type) {
       case 'PDF':
         return <FileText className="w-5 h-5 text-red-500" />;
@@ -261,7 +279,7 @@ startxref
     }
   };
 
-  const getProjectBadgeColor = (projectName) => {
+  const getProjectBadgeColor = (projectName: string) => {
     const project = projects.find(p => p.name === projectName);
     if (!project) return 'bg-gray-100 text-gray-800';
     
@@ -273,7 +291,7 @@ startxref
     }
   };
 
-  const handleDownload = (document) => {
+  const handleDownload = (document: Document) => {
     try {
       if (document.content) {
         const link = document.createElement('a');
@@ -313,7 +331,7 @@ startxref
     }
   };
 
-  const handleView = (document) => {
+  const handleView = (document: Document) => {
     if (document.content && document.type === 'PDF') {
       try {
         window.open(document.content, '_blank');
@@ -350,6 +368,7 @@ startxref
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Filters and Upload */}
         <div className="space-y-4">
+          {/* Quick Upload */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Quick Upload</CardTitle>
@@ -378,6 +397,7 @@ startxref
             </CardContent>
           </Card>
 
+          {/* Filters */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Filters</CardTitle>
@@ -404,6 +424,7 @@ startxref
             </CardContent>
           </Card>
 
+          {/* Document Stats */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Document Stats</CardTitle>
