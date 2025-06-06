@@ -5,9 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
-import { ArrowLeft, Calendar, Users, FileText, CheckCircle2, Clock, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Calendar, Users, FileText, CheckCircle2, Clock, AlertTriangle, Download, Eye } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 const ProjectDetail = ({ project, onBack }) => {
+  const { toast } = useToast();
+
   if (!project) return null;
 
   const getStatusColor = (status) => {
@@ -18,6 +21,73 @@ const ProjectDetail = ({ project, onBack }) => {
       case 'overdue': return 'bg-red-100 text-red-800 border-red-200';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
+  };
+
+  // Function to create a sample PDF content
+  const createSamplePDF = (title, content) => {
+    const pdfContent = `%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+>>
+endobj
+
+2 0 obj
+<<
+/Type /Pages
+/Kids [3 0 R]
+/Count 1
+>>
+endobj
+
+3 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 612 792]
+/Contents 4 0 R
+>>
+endobj
+
+4 0 obj
+<<
+/Length 200
+>>
+stream
+BT
+/F1 14 Tf
+50 750 Td
+(${title}) Tj
+0 -30 Td
+(${content}) Tj
+0 -30 Td
+(Project: ${project.name}) Tj
+0 -20 Td
+(Generated on: ${new Date().toLocaleDateString()}) Tj
+0 -20 Td
+(Status: ${project.status}) Tj
+ET
+endstream
+endobj
+
+xref
+0 5
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000214 00000 n 
+trailer
+<<
+/Size 5
+/Root 1 0 R
+>>
+startxref
+415
+%%EOF`;
+    
+    return `data:application/pdf;base64,${btoa(pdfContent)}`;
   };
 
   const mockTodos = [
@@ -72,11 +142,72 @@ const ProjectDetail = ({ project, onBack }) => {
   ];
 
   const mockDocuments = [
-    { name: "Building Plans - Final.pdf", type: "Plans", date: "2024-06-01", size: "2.3 MB" },
-    { name: "Permit Approval Letter.pdf", type: "Legal", date: "2024-06-10", size: "145 KB" },
-    { name: "Construction Contract.pdf", type: "Contract", date: "2024-05-15", size: "890 KB" },
-    { name: "Insurance Policy.pdf", type: "Insurance", date: "2024-05-20", size: "456 KB" }
+    { 
+      name: "Building Plans - Final.pdf", 
+      type: "Plans", 
+      date: "2024-06-01", 
+      size: "2.3 MB",
+      content: createSamplePDF("Building Plans - Final", "Detailed architectural plans for the downtown office building project including floor plans, elevations, and technical specifications.")
+    },
+    { 
+      name: "Permit Approval Letter.pdf", 
+      type: "Legal", 
+      date: "2024-06-10", 
+      size: "145 KB",
+      content: createSamplePDF("Permit Approval Letter", "Official approval letter from the city planning department for construction permits.")
+    },
+    { 
+      name: "Construction Contract.pdf", 
+      type: "Contract", 
+      date: "2024-05-15", 
+      size: "890 KB",
+      content: createSamplePDF("Construction Contract", "Comprehensive construction contract outlining terms, conditions, timeline, and deliverables.")
+    },
+    { 
+      name: "Insurance Policy.pdf", 
+      type: "Insurance", 
+      date: "2024-05-20", 
+      size: "456 KB",
+      content: createSamplePDF("Insurance Policy", "Commercial insurance policy covering construction activities and property protection.")
+    }
   ];
+
+  const handleDownload = (document) => {
+    try {
+      const link = document.createElement('a');
+      link.href = document.content;
+      link.download = document.name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast({
+        title: "Download started",
+        description: `${document.name} is being downloaded.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Download failed",
+        description: "Unable to download the file. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleView = (document) => {
+    try {
+      window.open(document.content, '_blank');
+      toast({
+        title: "Opening preview",
+        description: `Opening ${document.name} in a new tab.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Preview failed",
+        description: "Unable to open the preview. Please try downloading instead.",
+      });
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -249,7 +380,22 @@ const ProjectDetail = ({ project, onBack }) => {
                       <p className="text-sm text-slate-600">{doc.type} • {doc.size} • {new Date(doc.date).toLocaleDateString()}</p>
                     </div>
                   </div>
-                  <Button variant="ghost" size="sm">Download</Button>
+                  <div className="flex items-center gap-2">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => handleView(doc)}
+                    >
+                      <Eye className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => handleDownload(doc)}
+                    >
+                      <Download className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               ))}
             </CardContent>

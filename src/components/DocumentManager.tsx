@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 const DocumentManager = ({ projects }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [isUploading, setIsUploading] = useState(false);
   const [documents, setDocuments] = useState([
     {
       id: 1,
@@ -21,7 +21,7 @@ const DocumentManager = ({ projects }) => {
       size: "2.1 MB",
       tags: ["tax", "returns", "2023"],
       type: "PDF",
-      url: "data:application/pdf;base64,JVBERi0xLjQKMSAwIG9iago8PAovVGl0bGUgKDIwMjMgVGF4IFJldHVybilcL0Nsb3NlZFsyXQo+PgplbmRvYmoKMiAwIG9iago8PAovUGFyZW50IDAgMCBSCj4+CmVuZG9iagp0cmFpbGVyCjw8Ci9TaXplIDMKPj4KJTM=" // Sample PDF base64
+      content: createSamplePDF("2023 Tax Return - Final", "This is a sample tax return document for the year 2023.")
     },
     {
       id: 2,
@@ -32,11 +32,11 @@ const DocumentManager = ({ projects }) => {
       size: "1.8 MB",
       tags: ["trust", "legal", "amendment"],
       type: "PDF",
-      url: "data:application/pdf;base64,JVBERi0xLjQKMSAwIG9iago8PAovVGl0bGUgKFRydXN0IEFncmVlbWVudClcL0Nsb3NlZFsyXQo+PgplbmRvYmoKMiAwIG9iago8PAovUGFyZW50IDAgMCBSCj4+CmVuZG9iagp0cmFpbGVyCjw8Ci9TaXplIDMKPj4KJTM="
+      content: createSamplePDF("Trust Agreement Amendment", "This document contains amendments to the trust agreement.")
     },
     {
       id: 3,
-      name: "Building Construction Loom.mp4",
+      name: "Building Construction Video.mp4",
       category: "Project Updates",
       project: "Downtown Office Building",
       uploadDate: "2024-06-08",
@@ -53,7 +53,7 @@ const DocumentManager = ({ projects }) => {
       size: "890 KB",
       tags: ["insurance", "commercial", "policy"],
       type: "PDF",
-      url: "data:application/pdf;base64,JVBERi0xLjQKMSAwIG9iago8PAovVGl0bGUgKEluc3VyYW5jZSBQb2xpY3kpXC9DbG9zZWRbMl0KPj4KZW5kb2JqCjIgMCBvYmoKPDwKL1BhcmVudCAwIDAgUgo+PgplbmRvYmoKdHJhaWxlcgo8PAovU2l6ZSAzCj4+CiUz"
+      content: createSamplePDF("Insurance Policy - Commercial", "Commercial insurance policy documentation.")
     },
     {
       id: 5,
@@ -80,6 +80,69 @@ const DocumentManager = ({ projects }) => {
   const fileInputRef = useRef(null);
   const { toast } = useToast();
 
+  // Function to create a sample PDF content
+  function createSamplePDF(title, content) {
+    const pdfContent = `%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+>>
+endobj
+
+2 0 obj
+<<
+/Type /Pages
+/Kids [3 0 R]
+/Count 1
+>>
+endobj
+
+3 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 612 792]
+/Contents 4 0 R
+>>
+endobj
+
+4 0 obj
+<<
+/Length 150
+>>
+stream
+BT
+/F1 12 Tf
+50 750 Td
+(${title}) Tj
+0 -20 Td
+(${content}) Tj
+0 -20 Td
+(Generated on: ${new Date().toLocaleDateString()}) Tj
+ET
+endstream
+endobj
+
+xref
+0 5
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000214 00000 n 
+trailer
+<<
+/Size 5
+/Root 1 0 R
+>>
+startxref
+415
+%%EOF`;
+    
+    return `data:application/pdf;base64,${btoa(pdfContent)}`;
+  }
+
   const categories = [
     "all",
     "Tax",
@@ -97,11 +160,18 @@ const DocumentManager = ({ projects }) => {
     return matchesSearch && matchesCategory;
   });
 
-  const handleFileUpload = (event) => {
+  const handleFileUpload = async (event) => {
     const files = Array.from(event.target.files);
-    files.forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
+    setIsUploading(true);
+    
+    for (const file of files) {
+      try {
+        const reader = new FileReader();
+        const fileContent = await new Promise((resolve) => {
+          reader.onload = (e) => resolve(e.target.result);
+          reader.readAsDataURL(file);
+        });
+
         const newDocument = {
           id: documents.length + Math.random(),
           name: file.name,
@@ -111,16 +181,26 @@ const DocumentManager = ({ projects }) => {
           size: formatFileSize(file.size),
           tags: getAutoTags(file.name),
           type: getFileType(file.name),
-          url: e.target.result
+          content: fileContent
         };
+        
         setDocuments(prev => [...prev, newDocument]);
+        
         toast({
           title: "File uploaded successfully!",
           description: `${file.name} has been added to your documents.`,
         });
-      };
-      reader.readAsDataURL(file);
-    });
+      } catch (error) {
+        toast({
+          title: "Upload failed",
+          description: `Failed to upload ${file.name}. Please try again.`,
+          variant: "destructive"
+        });
+      }
+    }
+    
+    setIsUploading(false);
+    
     // Reset file input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -194,29 +274,59 @@ const DocumentManager = ({ projects }) => {
   };
 
   const handleDownload = (document) => {
-    if (document.url) {
-      const link = document.createElement('a');
-      link.href = document.url;
-      link.download = document.name;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+    try {
+      if (document.content) {
+        const link = document.createElement('a');
+        link.href = document.content;
+        link.download = document.name;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        toast({
+          title: "Download started",
+          description: `${document.name} is being downloaded.`,
+        });
+      } else {
+        // Create a sample file for documents without content
+        const blob = new Blob([`Sample content for ${document.name}`], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = document.name;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        
+        toast({
+          title: "Download started",
+          description: `${document.name} is being downloaded.`,
+        });
+      }
+    } catch (error) {
       toast({
-        title: "Download started",
-        description: `${document.name} is being downloaded.`,
-      });
-    } else {
-      toast({
-        title: "Download not available",
-        description: "This file is not available for download.",
+        title: "Download failed",
+        description: "Unable to download the file. Please try again.",
         variant: "destructive"
       });
     }
   };
 
   const handleView = (document) => {
-    if (document.url && document.type === 'PDF') {
-      window.open(document.url, '_blank');
+    if (document.content && document.type === 'PDF') {
+      try {
+        window.open(document.content, '_blank');
+        toast({
+          title: "Opening preview",
+          description: `Opening ${document.name} in a new tab.`,
+        });
+      } catch (error) {
+        toast({
+          title: "Preview failed",
+          description: "Unable to open the preview. Please try downloading instead.",
+        });
+      }
     } else {
       toast({
         title: "Preview not available",
@@ -249,9 +359,10 @@ const DocumentManager = ({ projects }) => {
                 className="w-full" 
                 size="lg"
                 onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
               >
                 <Upload className="w-4 h-4 mr-2" />
-                Upload Documents
+                {isUploading ? 'Uploading...' : 'Upload Documents'}
               </Button>
               <input
                 ref={fileInputRef}

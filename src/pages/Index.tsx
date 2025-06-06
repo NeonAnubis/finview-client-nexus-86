@@ -123,32 +123,12 @@ const Index = () => {
   const renderMainContent = () => {
     // Reports page content
     if (activeTab === 'reports') {
-      return (
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-slate-900">Financial Reports</h1>
-              <p className="text-slate-600">Comprehensive insights into your financial portfolio</p>
-            </div>
-          </div>
-          <ReportsPage onBack={() => setActiveTab('dashboard')} />
-        </div>
-      );
+      return <ReportsPage onBack={() => setActiveTab('dashboard')} />;
     }
 
     // Contact advisor page content
     if (activeTab === 'contact') {
-      return (
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-slate-900">Contact Your Advisor</h1>
-              <p className="text-slate-600">Get expert guidance on your financial matters</p>
-            </div>
-          </div>
-          <ContactAdvisorPage onBack={() => setActiveTab('dashboard')} />
-        </div>
-      );
+      return <ContactAdvisorPage onBack={() => setActiveTab('dashboard')} />;
     }
 
     // Main tabs content
