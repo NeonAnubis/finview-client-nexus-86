@@ -1,23 +1,30 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Building2, FileText, Users, TrendingUp, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
+import { Building2, FileText, Users, TrendingUp, AlertCircle, CheckCircle2, Clock, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 
 const MindMapView = ({ projects, onProjectSelect }) => {
   const [selectedEntity, setSelectedEntity] = useState(null);
+  const [zoom, setZoom] = useState(1);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const containerRef = useRef(null);
 
   const entities = {
     "Chen Family Trust": {
       type: "Trust",
       projects: projects.filter(p => p.entity === "Chen Family Trust"),
-      description: "Primary family trust for estate planning and tax optimization"
+      description: "Primary family trust for estate planning and tax optimization",
+      position: { x: 150, y: 200 }
     },
     "RC Holdings LLC": {
-      type: "Business Entity",
+      type: "Business Entity", 
       projects: projects.filter(p => p.entity === "RC Holdings LLC"),
-      description: "Real estate holding company for commercial properties"
+      description: "Real estate holding company for commercial properties",
+      position: { x: 450, y: 200 }
     }
   };
 
@@ -41,44 +48,145 @@ const MindMapView = ({ projects, onProjectSelect }) => {
     }
   };
 
+  const handleMouseDown = (e) => {
+    if (e.target === containerRef.current) {
+      setIsDragging(true);
+      setDragStart({ 
+        x: e.clientX - dragOffset.x, 
+        y: e.clientY - dragOffset.y 
+      });
+    }
+  };
+
+  const handleMouseMove = (e) => {
+    if (isDragging) {
+      setDragOffset({
+        x: e.clientX - dragStart.x,
+        y: e.clientY - dragStart.y
+      });
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  const handleZoom = (direction) => {
+    const newZoom = direction === 'in' ? 
+      Math.min(zoom * 1.2, 2) : 
+      Math.max(zoom / 1.2, 0.5);
+    setZoom(newZoom);
+  };
+
+  const resetView = () => {
+    setZoom(1);
+    setDragOffset({ x: 0, y: 0 });
+  };
+
+  React.useEffect(() => {
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging, dragStart]);
+
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Building2 className="w-6 h-6" />
-            Portfolio Structure
-          </CardTitle>
-          <p className="text-slate-600">Interactive view of your financial entities and projects</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Building2 className="w-6 h-6" />
+                Visual Relationship View
+              </CardTitle>
+              <p className="text-slate-600">Interactive visualization of your financial structure</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => handleZoom('out')}>
+                <ZoomOut className="w-4 h-4" />
+              </Button>
+              <span className="text-sm text-slate-600 min-w-[50px] text-center">
+                {Math.round(zoom * 100)}%
+              </span>
+              <Button variant="outline" size="sm" onClick={() => handleZoom('in')}>
+                <ZoomIn className="w-4 h-4" />
+              </Button>
+              <Button variant="outline" size="sm" onClick={resetView}>
+                <RotateCcw className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
         </CardHeader>
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Entity Map */}
+        {/* Interactive Map */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="relative p-8 bg-white rounded-lg border border-slate-200 min-h-[500px]">
-            <div className="flex flex-col items-center space-y-8">
+          <div 
+            ref={containerRef}
+            className="relative p-8 bg-white rounded-lg border border-slate-200 min-h-[600px] overflow-hidden cursor-grab active:cursor-grabbing"
+            style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
+            onMouseDown={handleMouseDown}
+          >
+            <div 
+              className="relative w-full h-full"
+              style={{
+                transform: `translate(${dragOffset.x}px, ${dragOffset.y}px) scale(${zoom})`,
+                transformOrigin: 'center',
+                transition: isDragging ? 'none' : 'transform 0.2s ease-out'
+              }}
+            >
               {/* Client Node */}
-              <div className="text-center">
-                <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-lg">
-                  <Users className="w-12 h-12 text-white" />
+              <div 
+                className="absolute"
+                style={{ left: '300px', top: '50px' }}
+              >
+                <div className="text-center">
+                  <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-lg">
+                    <Users className="w-12 h-12 text-white" />
+                  </div>
+                  <h3 className="mt-2 font-semibold text-slate-900">Robert Chen</h3>
+                  <p className="text-sm text-slate-600">Primary Client</p>
                 </div>
-                <h3 className="mt-2 font-semibold text-slate-900">Robert Chen</h3>
-                <p className="text-sm text-slate-600">Primary Client</p>
               </div>
 
-              {/* Connection Lines */}
-              <div className="w-0.5 h-8 bg-slate-300"></div>
+              {/* Connection Lines to Entities */}
+              <svg className="absolute inset-0 w-full h-full pointer-events-none">
+                {Object.entries(entities).map(([entityName, entityData]) => (
+                  <line
+                    key={entityName}
+                    x1={350} y1={125}
+                    x2={entityData.position.x + 50} y2={entityData.position.y + 50}
+                    stroke="#cbd5e1"
+                    strokeWidth="2"
+                    strokeDasharray="5,5"
+                  />
+                ))}
+              </svg>
 
               {/* Entity Nodes */}
-              <div className="flex flex-wrap justify-center gap-12">
-                {Object.entries(entities).map(([entityName, entityData]) => (
-                  <div key={entityName} className="text-center">
+              {Object.entries(entities).map(([entityName, entityData]) => (
+                <div 
+                  key={entityName}
+                  className="absolute"
+                  style={{ 
+                    left: `${entityData.position.x}px`, 
+                    top: `${entityData.position.y}px` 
+                  }}
+                >
+                  <div className="text-center">
                     <div 
                       className={`w-20 h-20 rounded-lg flex items-center justify-center shadow-lg cursor-pointer transition-all duration-200 hover:scale-105 ${
                         selectedEntity === entityName ? 'bg-blue-500 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                       }`}
-                      onClick={() => setSelectedEntity(selectedEntity === entityName ? null : entityName)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedEntity(selectedEntity === entityName ? null : entityName);
+                      }}
                     >
                       {entityData.type === 'Trust' ? (
                         <FileText className="w-8 h-8" />
@@ -86,7 +194,7 @@ const MindMapView = ({ projects, onProjectSelect }) => {
                         <Building2 className="w-8 h-8" />
                       )}
                     </div>
-                    <h4 className="mt-2 font-medium text-sm text-slate-900">{entityName}</h4>
+                    <h4 className="mt-2 font-medium text-sm text-slate-900 max-w-[120px]">{entityName}</h4>
                     <p className="text-xs text-slate-600">{entityData.type}</p>
                     
                     {/* Project Indicators */}
@@ -103,30 +211,58 @@ const MindMapView = ({ projects, onProjectSelect }) => {
                         />
                       ))}
                     </div>
+
+                    {/* Project Lines */}
+                    <svg className="absolute top-20 left-1/2 transform -translate-x-1/2 w-32 h-20 pointer-events-none">
+                      {entityData.projects.map((project, index) => (
+                        <g key={project.id}>
+                          <line
+                            x1={16} y1={0}
+                            x2={16 + (index - entityData.projects.length/2 + 0.5) * 30} y2={15}
+                            stroke="#cbd5e1"
+                            strokeWidth="1"
+                          />
+                          <circle
+                            cx={16 + (index - entityData.projects.length/2 + 0.5) * 30}
+                            cy={15}
+                            r="3"
+                            className={getStatusColor(project.status)}
+                          />
+                        </g>
+                      ))}
+                    </svg>
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
             </div>
 
             {/* Legend */}
-            <div className="absolute bottom-4 right-4 flex gap-4 text-xs">
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                <span>Completed</span>
+            <div className="absolute bottom-4 right-4 bg-white p-3 rounded-lg shadow-sm border border-slate-200">
+              <h4 className="text-sm font-medium text-slate-900 mb-2">Project Status</h4>
+              <div className="space-y-1 text-xs">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                  <span>Completed</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                  <span>On Track</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                  <span>Needs Attention</span>
+                </div>
               </div>
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                <span>On Track</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                <span>Needs Attention</span>
-              </div>
+            </div>
+
+            {/* Navigation Hint */}
+            <div className="absolute top-4 left-4 bg-blue-50 p-2 rounded-lg text-xs text-blue-700">
+              💡 Drag to pan • Scroll to zoom • Click nodes to explore
             </div>
           </div>
         </div>
 
-        {/* Entity Details */}
+        {/* Entity Details Panel */}
         <div className="space-y-4">
           {selectedEntity ? (
             <Card>

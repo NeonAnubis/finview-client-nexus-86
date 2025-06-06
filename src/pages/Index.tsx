@@ -9,8 +9,14 @@ import MindMapView from '@/components/MindMapView';
 import ProjectDetail from '@/components/ProjectDetail';
 import DocumentManager from '@/components/DocumentManager';
 import AIAssistant from '@/components/AIAssistant';
+import SignInPage from '@/components/SignInPage';
+import SignUpPage from '@/components/SignUpPage';
+import ReportsPage from '@/components/ReportsPage';
+import ContactAdvisorPage from '@/components/ContactAdvisorPage';
 
 const Index = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authMode, setAuthMode] = useState('signin'); // 'signin' or 'signup'
   const [selectedProject, setSelectedProject] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
 
@@ -84,6 +90,43 @@ const Index = () => {
     }
   };
 
+  // Authentication handlers
+  const handleSignIn = () => {
+    setIsAuthenticated(true);
+  };
+
+  const handleSignUp = () => {
+    setIsAuthenticated(true);
+  };
+
+  // Show authentication pages if not authenticated
+  if (!isAuthenticated) {
+    if (authMode === 'signin') {
+      return (
+        <SignInPage 
+          onSignIn={handleSignIn}
+          onSwitchToSignUp={() => setAuthMode('signup')}
+        />
+      );
+    } else {
+      return (
+        <SignUpPage 
+          onSignUp={handleSignUp}
+          onSwitchToSignIn={() => setAuthMode('signin')}
+        />
+      );
+    }
+  }
+
+  // Show specific pages based on activeTab
+  if (activeTab === 'reports') {
+    return <ReportsPage onBack={() => setActiveTab('dashboard')} />;
+  }
+
+  if (activeTab === 'contact') {
+    return <ContactAdvisorPage onBack={() => setActiveTab('dashboard')} />;
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       {/* Header */}
@@ -100,11 +143,18 @@ const Index = () => {
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              <Button variant="outline" size="sm">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setActiveTab('reports')}
+              >
                 <FileText className="w-4 h-4 mr-2" />
                 Reports
               </Button>
-              <Button size="sm">
+              <Button 
+                size="sm"
+                onClick={() => setActiveTab('contact')}
+              >
                 <MessageSquare className="w-4 h-4 mr-2" />
                 Contact Advisor
               </Button>
@@ -117,7 +167,7 @@ const Index = () => {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:grid-cols-none lg:inline-flex">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-            <TabsTrigger value="mindmap">Portfolio Map</TabsTrigger>
+            <TabsTrigger value="visual">Visual Relationship View</TabsTrigger>
             <TabsTrigger value="documents">Documents</TabsTrigger>
             <TabsTrigger value="assistant">AI Assistant</TabsTrigger>
           </TabsList>
@@ -174,7 +224,6 @@ const Index = () => {
               </Card>
             </div>
 
-            {/* Projects Overview */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card>
                 <CardHeader>
@@ -242,7 +291,7 @@ const Index = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value="mindmap">
+          <TabsContent value="visual">
             <MindMapView projects={projects} onProjectSelect={(project) => {
               setSelectedProject(project);
               setActiveTab('project-detail');
