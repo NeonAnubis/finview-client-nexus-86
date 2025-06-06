@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FileText, Upload, Search, Filter, Download, Eye, Tag } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-interface Document {
+interface DocumentFile {
   id: number;
   name: string;
   category: string;
@@ -23,7 +23,7 @@ const DocumentManager = ({ projects }: { projects: any[] }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [isUploading, setIsUploading] = useState(false);
-  const [documents, setDocuments] = useState<Document[]>([
+  const [documents, setDocuments] = useState<DocumentFile[]>([
     {
       id: 1,
       name: "2023 Tax Return - Final.pdf",
@@ -190,7 +190,7 @@ startxref
           reader.readAsDataURL(file);
         });
 
-        const newDocument: Document = {
+        const newDocument: DocumentFile = {
           id: documents.length + Math.random(),
           name: file.name,
           category: getAutoCategory(file.name),
@@ -291,27 +291,27 @@ startxref
     }
   };
 
-  const handleDownload = (document: Document) => {
+  const handleDownload = (documentFile: DocumentFile) => {
     try {
-      if (document.content) {
+      if (documentFile.content) {
         const link = document.createElement('a');
-        link.href = document.content;
-        link.download = document.name;
+        link.href = documentFile.content;
+        link.download = documentFile.name;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
         
         toast({
           title: "Download started",
-          description: `${document.name} is being downloaded.`,
+          description: `${documentFile.name} is being downloaded.`,
         });
       } else {
         // Create a sample file for documents without content
-        const blob = new Blob([`Sample content for ${document.name}`], { type: 'text/plain' });
+        const blob = new Blob([`Sample content for ${documentFile.name}`], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = document.name;
+        link.download = documentFile.name;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -319,7 +319,7 @@ startxref
         
         toast({
           title: "Download started",
-          description: `${document.name} is being downloaded.`,
+          description: `${documentFile.name} is being downloaded.`,
         });
       }
     } catch (error) {
@@ -331,13 +331,13 @@ startxref
     }
   };
 
-  const handleView = (document: Document) => {
-    if (document.content && document.type === 'PDF') {
+  const handleView = (documentFile: DocumentFile) => {
+    if (documentFile.content && documentFile.type === 'PDF') {
       try {
-        window.open(document.content, '_blank');
+        window.open(documentFile.content, '_blank');
         toast({
           title: "Opening preview",
-          description: `Opening ${document.name} in a new tab.`,
+          description: `Opening ${documentFile.name} in a new tab.`,
         });
       } catch (error) {
         toast({
@@ -355,6 +355,7 @@ startxref
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -490,30 +491,30 @@ startxref
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
-              {filteredDocuments.map((document) => (
+              {filteredDocuments.map((documentFile) => (
                 <div 
-                  key={document.id} 
+                  key={documentFile.id} 
                   className="p-4 border border-slate-200 rounded-lg hover:border-blue-300 transition-colors"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3 flex-1">
-                      {getFileIcon(document.type)}
+                      {getFileIcon(documentFile.type)}
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-slate-900 truncate">{document.name}</h3>
+                        <h3 className="font-medium text-slate-900 truncate">{documentFile.name}</h3>
                         <div className="flex items-center gap-2 mt-1">
-                          <Badge className={getProjectBadgeColor(document.project)}>
-                            {document.project}
+                          <Badge className={getProjectBadgeColor(documentFile.project)}>
+                            {documentFile.project}
                           </Badge>
-                          <span className="text-sm text-slate-600">{document.category}</span>
+                          <span className="text-sm text-slate-600">{documentFile.category}</span>
                           <span className="text-sm text-slate-500">•</span>
-                          <span className="text-sm text-slate-500">{document.size}</span>
+                          <span className="text-sm text-slate-500">{documentFile.size}</span>
                           <span className="text-sm text-slate-500">•</span>
                           <span className="text-sm text-slate-500">
-                            {new Date(document.uploadDate).toLocaleDateString()}
+                            {new Date(documentFile.uploadDate).toLocaleDateString()}
                           </span>
                         </div>
                         <div className="flex items-center gap-1 mt-2">
-                          {document.tags.map((tag, index) => (
+                          {documentFile.tags.map((tag, index) => (
                             <Badge key={index} variant="outline" className="text-xs">
                               <Tag className="w-3 h-3 mr-1" />
                               {tag}
@@ -526,14 +527,14 @@ startxref
                       <Button 
                         variant="ghost" 
                         size="sm"
-                        onClick={() => handleView(document)}
+                        onClick={() => handleView(documentFile)}
                       >
                         <Eye className="w-4 h-4" />
                       </Button>
                       <Button 
                         variant="ghost" 
                         size="sm"
-                        onClick={() => handleDownload(document)}
+                        onClick={() => handleDownload(documentFile)}
                       >
                         <Download className="w-4 h-4" />
                       </Button>
