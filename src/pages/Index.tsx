@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -165,10 +164,11 @@ const Index = () => {
 
       <div className="max-w-7xl mx-auto px-6 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:grid-cols-none lg:inline-flex">
+          <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:grid-cols-none lg:inline-flex">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="visual">Visual Relationship View</TabsTrigger>
-            <TabsTrigger value="documents">Documents</TabsTrigger>
+            <TabsTrigger value="projects">Project Pages</TabsTrigger>
+            <TabsTrigger value="documents">Secure Documents</TabsTrigger>
             <TabsTrigger value="assistant">AI Assistant</TabsTrigger>
           </TabsList>
 
@@ -296,6 +296,68 @@ const Index = () => {
               setSelectedProject(project);
               setActiveTab('project-detail');
             }} />
+          </TabsContent>
+
+          <TabsContent value="projects">
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Building2 className="w-6 h-6" />
+                    All Projects
+                  </CardTitle>
+                  <p className="text-slate-600">Manage and track all your active and completed projects</p>
+                </CardHeader>
+              </Card>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                {projects.map((project) => (
+                  <Card 
+                    key={project.id}
+                    className="cursor-pointer hover:shadow-lg transition-shadow"
+                    onClick={() => {
+                      setSelectedProject(project);
+                      setActiveTab('project-detail');
+                    }}
+                  >
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-lg">{project.name}</CardTitle>
+                        <Badge className={getStatusColor(project.status)}>
+                          {getStatusIcon(project.status)}
+                          {project.status.replace('-', ' ')}
+                        </Badge>
+                      </div>
+                      <p className="text-slate-600">{project.entity} • {project.type}</p>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        <div>
+                          <div className="flex justify-between text-sm mb-1">
+                            <span>Progress</span>
+                            <span>{project.completion}%</span>
+                          </div>
+                          <div className="w-full bg-slate-200 rounded-full h-2">
+                            <div 
+                              className={`h-2 rounded-full ${
+                                project.status === 'completed' ? 'bg-green-500' :
+                                project.status === 'on-track' ? 'bg-blue-500' : 'bg-yellow-500'
+                              }`}
+                              style={{ width: `${project.completion}%` }}
+                            />
+                          </div>
+                        </div>
+                        <div className="text-sm text-slate-600">
+                          <p><strong>Deadline:</strong> {new Date(project.deadline).toLocaleDateString()}</p>
+                          <p><strong>Parties:</strong> {project.parties.length} involved</p>
+                        </div>
+                        <p className="text-sm text-slate-700">{project.lastUpdate}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
           </TabsContent>
 
           <TabsContent value="documents">
